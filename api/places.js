@@ -33,6 +33,7 @@ export default async function handler(req, res) {
         'places.regularOpeningHours',
         'places.googleMapsUri',
         'places.editorialSummary',
+        'places.location',
       ].join(','),
     },
     body: JSON.stringify(body),

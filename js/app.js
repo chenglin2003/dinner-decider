@@ -12,7 +12,7 @@ const RADII    = [
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────
-const S = {
+ const S = {
   name: '',
   apiKey: '',
   roomCode: '',
@@ -22,6 +22,9 @@ const S = {
   currentIdx: 0,
   cuisine: 'All',
   radius: 1000,
+  budget: 'Any',
+  minRating: 0,
+  openNow: false,
   coords: null,
   partnerName: '',
   unsubscribe: null,
@@ -47,6 +50,9 @@ export const app = {
     bindHome();
     buildCuisineChips();
     buildRadiusChips();
+    buildBudgetChips();
+    buildRatingChips();
+    buildOpenNowToggle();
   }
 };
 
@@ -79,6 +85,9 @@ async function onCreateRoom() {
     status: 'waiting',
     cuisine: S.cuisine,
     radius: S.radius,
+    budget: S.budget,
+    minRating: S.minRating,
+    openNow: S.openNow,
     created: Date.now(),
   };
   await createRoom(S.roomCode, room);
@@ -104,8 +113,11 @@ async function onJoinRoom() {
   S.partnerName = room.host;
   S.mySwipes    = {};
   S.currentIdx  = 0;
-  S.cuisine     = room.cuisine || 'All';
-  S.radius      = room.radius  || 1000;
+  S.cuisine     = room.cuisine   || 'All';
+  S.radius      = room.radius    || 1000;
+  S.budget      = room.budget    || 'Any';
+  S.minRating   = room.minRating || 0;
+  S.openNow     = room.openNow   || false;
 
   await updateRoom(code, { guest: name, status: 'loading' });
 
@@ -138,6 +150,42 @@ function buildCuisineChips() {
     $('cuisine-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     if (S.isHost && S.roomCode) updateRoom(S.roomCode, { cuisine: S.cuisine });
+  });
+}
+function buildBudgetChips() {
+  const options = ['Any', '$', '$$', '$$$'];
+  $('budget-chips').innerHTML = options.map(b =>
+    `<button class="chip ${b === 'Any' ? 'active' : ''}" data-budget="${b}">${b}</button>`
+  ).join('');
+  $('budget-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-budget]');
+    if (!chip) return;
+    S.budget = chip.dataset.budget;
+    $('budget-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    if (S.isHost && S.roomCode) updateRoom(S.roomCode, { budget: S.budget });
+  });
+}
+
+function buildRatingChips() {
+  const options = [{ label: 'Any', value: 0 }, { label: '3.5+', value: 3.5 }, { label: '4.0+', value: 4.0 }, { label: '4.5+', value: 4.5 }];
+  $('rating-chips').innerHTML = options.map(r =>
+    `<button class="chip ${r.value === 0 ? 'active' : ''}" data-rating="${r.value}">${r.label}</button>`
+  ).join('');
+  $('rating-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-rating]');
+    if (!chip) return;
+    S.minRating = Number(chip.dataset.rating);
+    $('rating-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    if (S.isHost && S.roomCode) updateRoom(S.roomCode, { minRating: S.minRating });
+  });
+}
+
+function buildOpenNowToggle() {
+  $('open-now-toggle').addEventListener('change', e => {
+    S.openNow = e.target.checked;
+    if (S.isHost && S.roomCode) updateRoom(S.roomCode, { openNow: S.openNow });
   });
 }
 
@@ -203,8 +251,24 @@ async function doFetchRestaurants(code) {
       showScreen('lobby');
       return;
     }
-    S.restaurants = restaurants;
-    await updateRoom(code, { restaurants, status: 'ready' });
+    let filtered = restaurants;
+    if (S.budget !== 'Any') {
+      const priceMap = { '$': 1, '$$': 2, '$$$': 3 };
+      filtered = filtered.filter(r => !r.price || r.price === S.budget);
+    }
+    if (S.minRating > 0) {
+      filtered = filtered.filter(r => !r.rating || r.rating >= S.minRating);
+    }
+    if (S.openNow) {
+      filtered = filtered.filter(r => r.isOpen === true);
+    }
+    if (!filtered.length) {
+      alert('No restaurants match your filters. Try relaxing them.');
+      showScreen('lobby');
+      return;
+    }
+    S.restaurants = filtered;
+    await updateRoom(code, { restaurants: filtered, status: 'ready' });
 
     if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
     startSwipeScreen();
@@ -216,15 +280,16 @@ async function doFetchRestaurants(code) {
 }
 
 // ── Swipe screen ───────────────────────────────────────────────────────────
-function startSwipeScreen() {
+function startSwipeScreen(room) {
+  S.restaurants = (room && room.restaurants) ? room.restaurants : S.restaurants;
   S.currentIdx = 0;
   S.mySwipes   = {};
 
-  $('avatar-you').textContent         = S.name.substring(0, 2).toUpperCase();
-  $('avatar-partner').textContent     = (S.partnerName || 'P').substring(0, 2).toUpperCase();
-  $('swipe-you-name').textContent     = S.name;
-  $('swipe-partner-name').textContent = S.partnerName || 'Partner';
-  $('swipe-you-count').textContent    = '0';
+  $('avatar-you').textContent          = S.name.substring(0, 2).toUpperCase();
+  $('avatar-partner').textContent      = (S.partnerName || 'P').substring(0, 2).toUpperCase();
+  $('swipe-you-name').textContent      = S.name;
+  $('swipe-partner-name').textContent  = S.partnerName || 'Partner';
+  $('swipe-you-count').textContent     = '0';
   $('swipe-partner-count').textContent = '0';
 
   renderCard();
@@ -252,6 +317,7 @@ function renderCard() {
   const tags = [];
   if (r.rating)  tags.push({ label: `★ ${r.rating} (${r.ratingCount.toLocaleString()})`, cls: 'green' });
   if (r.price)   tags.push({ label: r.price, cls: r.price.length <= 1 ? 'green' : r.price.length === 2 ? 'amber' : 'red' });
+  if (r.distance)  tags.push({ label: `📍 ${r.distance}`, cls: '' });
   if (r.isOpen === true)  tags.push({ label: 'Open now', cls: 'green' });
   if (r.isOpen === false) tags.push({ label: 'Closed',   cls: 'red' });
   const tagsHtml = tags.map(t => `<span class="card-tag ${t.cls}">${t.label}</span>`).join('');
@@ -364,7 +430,6 @@ function startSwipeWatch() {
     if (!room) return;
     if (S.matchResolved) return;
 
-    // Match already written to DB — show it
     if (room.matchResult) {
       S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
@@ -372,11 +437,10 @@ function startSwipeWatch() {
       return;
     }
 
-    // No match written to DB
     if (room.noMatch) {
       S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
-      showScreen('nomatch');
+      showEndScreen(room.summary || {}, null);
       return;
     }
 
@@ -406,22 +470,40 @@ function startSwipeWatch() {
 }
 
 async function resolveMatch(mySwipes, partnerSwipes) {
-  // Prevent double resolution if both players trigger this simultaneously
   const room = await getRoom(S.roomCode);
   if (room?.matchResult || room?.noMatch) return;
 
-  const matches = S.restaurants.filter(r => mySwipes[r.id] === true && partnerSwipes[r.id] === true);
+  const myLikes      = S.restaurants.filter(r => mySwipes[r.id] === true);
+  const partnerLikes = S.restaurants.filter(r => partnerSwipes[r.id] === true);
+  const matches      = S.restaurants.filter(r => mySwipes[r.id] === true && partnerSwipes[r.id] === true);
+
+  const summary = {
+    myLikes: myLikes.map(r => r.name),
+    partnerLikes: partnerLikes.map(r => r.name),
+  };
 
   if (!matches.length) {
-    await updateRoom(S.roomCode, { noMatch: true });
-    showScreen('nomatch');
+    await updateRoom(S.roomCode, { noMatch: true, summary });
+    showEndScreen(summary, null);
     return;
   }
 
   const pick = matches.sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
-  await updateRoom(S.roomCode, { matchResult: pick });
+  await updateRoom(S.roomCode, { matchResult: pick, summary });
   showMatchScreen(pick);
 }
+function showEndScreen(summary, match) {
+  const myName      = S.name;
+  const partnerName = S.partnerName || 'Partner';
+
+  $('end-my-name').textContent      = myName;
+  $('end-partner-name').textContent = partnerName;
+  $('end-my-likes').innerHTML       = (summary.myLikes || []).map(n => `<li>${n}</li>`).join('') || '<li>Nothing liked</li>';
+  $('end-partner-likes').innerHTML  = (summary.partnerLikes || []).map(n => `<li>${n}</li>`).join('') || '<li>Nothing liked</li>';
+
+  showScreen('end');
+}
+
 
 // ── Match screen ───────────────────────────────────────────────────────────
 function showMatchScreen(r) {
@@ -489,6 +571,23 @@ function resetApp() {
   });
   showScreen('home');
 }
+async function doRematch() {
+  S.matchResolved = false;
+  S.mySwipes      = {};
+  S.currentIdx    = 0;
+  await updateRoom(S.roomCode, {
+    hostSwipes: {},
+    guestSwipes: {},
+    matchResult: null,
+    noMatch: null,
+    summary: null,
+    status: 'ready',
+  });
+  startSwipeScreen({ restaurants: S.restaurants });
+}
 $('btn-reset').addEventListener('click', resetApp);
 $('btn-retry').addEventListener('click', resetApp);
+$('btn-end-retry').addEventListener('click', resetApp);
+$('btn-rematch').addEventListener('click', doRematch);
+$('btn-rematch-match').addEventListener('click', doRematch);
 

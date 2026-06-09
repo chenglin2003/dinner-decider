@@ -70,6 +70,7 @@ export async function fetchNearbyRestaurants(apiKey, coords, cuisine = 'All', ra
     isOpen: p.regularOpeningHours?.openNow ?? null,
     mapsUri: p.googleMapsUri || null,
     summary: p.editorialSummary?.text || null,
+    distance: p.location ? getDistanceMeters(coords, p.location.latitude, p.location.longitude) : null,
   }));
 }
 
@@ -84,4 +85,14 @@ export async function fetchNearbyRestaurants(apiKey, coords, cuisine = 'All', ra
 export function buildPhotoUrl(photoName, apiKey, maxWidth = 600) {
   if (!photoName) return null;
   return `/api/photo?name=${encodeURIComponent(photoName)}&maxWidth=${maxWidth}`;
+}
+
+function getDistanceMeters(from, lat, lng) {
+  const R = 6371000;
+  const dLat = (lat - from.lat) * Math.PI / 180;
+  const dLng = (lng - from.lng) * Math.PI / 180;
+  const a = Math.sin(dLat/2) ** 2 +
+    Math.cos(from.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng/2) ** 2;
+  const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return d < 1000 ? `${Math.round(d)} m` : `${(d/1000).toFixed(1)} km`;
 }

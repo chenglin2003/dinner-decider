@@ -56,10 +56,21 @@
       </div>
 
       <div class="filter-section">
-        <p class="filter-label">Filter by cuisine</p>
+        <p class="filter-label">Cuisine</p>
         <div class="chip-row" id="cuisine-chips"></div>
-        <p class="filter-label" style="margin-top:1rem;">Search radius</p>
+        <p class="filter-label" style="margin-top:1rem;">Radius</p>
         <div class="chip-row" id="radius-chips"></div>
+        <p class="filter-label" style="margin-top:1rem;">Budget</p>
+        <div class="chip-row" id="budget-chips"></div>
+        <p class="filter-label" style="margin-top:1rem;">Min rating</p>
+        <div class="chip-row" id="rating-chips"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:1rem;">
+          <p class="filter-label" style="margin:0;">Open now only</p>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="open-now-toggle" />
+            <span style="font-size:13px;color:var(--text-secondary);">Only show currently open places</span>
+          </label>
+        </div>
       </div>
 
       <div class="lobby-actions">
@@ -141,6 +152,7 @@
         <p class="match-address" id="match-address"></p>
         <div class="match-actions">
           <button class="btn-primary" id="btn-directions">📍 Get directions</button>
+          <button class="btn-secondary" id="btn-rematch-match">🔁 Rematch</button>
           <button class="btn-ghost" id="btn-reset">Start over</button>
         </div>
       </div>
@@ -156,7 +168,28 @@
       </div>
     </div>
 
-  </div>
+    <!-- SCREEN: END (no match + summary) -->
+    <div id="screen-end" class="screen">
+      <div class="waiting-center" style="align-items:flex-start;text-align:left;padding-top:2rem;">
+        <div class="waiting-emoji" style="align-self:center;">😬</div>
+        <h2 style="align-self:center;margin-bottom:0.5rem;">No match this round</h2>
+        <p class="waiting-sub" style="align-self:center;margin-bottom:2rem;">Here's what you each liked</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;">
+          <div>
+            <p style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:8px;" id="end-my-name">You</p>
+            <ul id="end-my-likes" style="list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px;"></ul>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:8px;" id="end-partner-name">Partner</p>
+            <ul id="end-partner-likes" style="list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px;"></ul>
+          </div>
+        </div>
+        <button class="btn-primary" id="btn-rematch" style="width:100%;margin-top:2rem;">🔁 Rematch with same places</button>
+        <button class="btn-ghost" id="btn-end-retry" style="width:100%;margin-top:8px;">Start over</button>
+      </div>
+    </div>
+
+  </div> <!-- end of #app -->
 
   <!-- Firebase Realtime Database (free tier, no billing required) -->
   <script type="module">
