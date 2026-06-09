@@ -18,13 +18,14 @@ const S = {
   roomCode: '',
   isHost: false,
   restaurants: [],
-  mySwipes: {},     // { restaurantId: true/false }
+  mySwipes: {},
   currentIdx: 0,
   cuisine: 'All',
   radius: 1000,
   coords: null,
   partnerName: '',
   unsubscribe: null,
+  matchResolved: false,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -356,17 +357,17 @@ async function commitSwipe(liked) {
 
 // ── Swipe watch (real-time partner sync + match detection) ─────────────────
 function startSwipeWatch() {
-  if (S.unsubscribe) S.unsubscribe();
-  let matchResolved = false;
+  if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
+  S.matchResolved = false;
 
   S.unsubscribe = subscribeRoom(S.roomCode, room => {
-    if (!room || matchResolved) return;
+    if (!room || S.matchResolved) return;
 
-    const mySwipesFromDB     = S.isHost ? (room.hostSwipes || {}) : (room.guestSwipes || {});
-    const partnerSwipes      = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
-    const total              = S.restaurants.length;
-    const myCountFromDB      = Object.keys(mySwipesFromDB).length;
-    const partnerCount       = Object.keys(partnerSwipes).length;
+    const mySwipesFromDB = S.isHost ? (room.hostSwipes || {}) : (room.guestSwipes || {});
+    const partnerSwipes  = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
+    const total          = S.restaurants.length;
+    const myCountFromDB  = Object.keys(mySwipesFromDB).length;
+    const partnerCount   = Object.keys(partnerSwipes).length;
 
     const swipeCountEl = $('swipe-partner-count');
     if (swipeCountEl) swipeCountEl.textContent = partnerCount;
@@ -382,7 +383,7 @@ function startSwipeWatch() {
     const partnerDone = partnerCount  >= total;
 
     if (meDone && partnerDone) {
-      matchResolved = true;
+      S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       S.mySwipes = mySwipesFromDB;
       resolveMatch(partnerSwipes);
@@ -459,7 +460,8 @@ function resetApp() {
   Object.assign(S, {
     name:'', roomCode:'', isHost:false,
     restaurants:[], mySwipes:{}, currentIdx:0,
-    cuisine:'All', radius:1000, coords:null, partnerName:''
+    cuisine:'All', radius:1000, coords:null, partnerName:'',
+    matchResolved: false,
   });
   showScreen('home');
 }
