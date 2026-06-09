@@ -1,6 +1,6 @@
 // js/app.js
 import { fetchNearbyRestaurants, buildPhotoUrl, getLocation } from './places.js';
-import { createRoom, getRoom, updateRoom, subscribeRoom, generateCode } from './sync.js';
+import { createRoom, getRoom, updateRoom, subscribeRoom, generateCode, setMatchResult } from './sync.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const CUISINES = ['All','Japanese','Korean','Chinese','Western','Thai','Indian','Italian','Seafood','Cafe'];
@@ -358,10 +358,22 @@ async function commitSwipe(liked) {
 // ── Swipe watch (real-time partner sync + match detection) ─────────────────
 function startSwipeWatch() {
   if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
-  S.matchResolved = false;
 
   S.unsubscribe = subscribeRoom(S.roomCode, room => {
-    if (!room || S.matchResolved) return;
+    if (!room) return;
+
+    // If match already written to DB, show it and stop
+    if (room.matchResult) {
+      if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
+      showMatchScreen(room.matchResult);
+      return;
+    }
+
+    if (room.noMatch) {
+      if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
+      showScreen('nomatch');
+      return;
+    }
 
     const mySwipesFromDB = S.isHost ? (room.hostSwipes || {}) : (room.guestSwipes || {});
     const partnerSwipes  = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
@@ -383,21 +395,24 @@ function startSwipeWatch() {
     const partnerDone = partnerCount  >= total;
 
     if (meDone && partnerDone) {
-      S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       S.mySwipes = mySwipesFromDB;
-      resolveMatch(partnerSwipes);
+      resolveMatch(mySwipesFromDB, partnerSwipes);
     }
   });
 }
 
-function resolveMatch(partnerSwipes) {
-  const matches = S.restaurants.filter(r => S.mySwipes[r.id] === true && partnerSwipes[r.id] === true);
+async function resolveMatch(mySwipes, partnerSwipes) {
+  const matches = S.restaurants.filter(r => mySwipes[r.id] === true && partnerSwipes[r.id] === true);
+
   if (!matches.length) {
+    await updateRoom(S.roomCode, { noMatch: true });
     showScreen('nomatch');
     return;
   }
+
   const pick = matches.sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
+  await updateRoom(S.roomCode, { matchResult: pick });
   showMatchScreen(pick);
 }
 

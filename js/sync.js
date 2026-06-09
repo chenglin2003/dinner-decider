@@ -40,3 +40,7 @@ export function generateCode() {
   for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 }
+
+export async function setMatchResult(code, result) {
+  await window._firebase.update(window._firebase.ref(window._firebase.db, `rooms/${code}`), { matchResult: result });
+}
