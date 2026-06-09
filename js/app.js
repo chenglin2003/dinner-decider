@@ -361,15 +361,19 @@ function startSwipeWatch() {
 
   S.unsubscribe = subscribeRoom(S.roomCode, room => {
     if (!room) return;
+    if (S.matchResolved) return;
 
-    // If match already written to DB, show it and stop
+    // Match already written to DB — show it
     if (room.matchResult) {
+      S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       showMatchScreen(room.matchResult);
       return;
     }
 
+    // No match written to DB
     if (room.noMatch) {
+      S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       showScreen('nomatch');
       return;
@@ -378,7 +382,7 @@ function startSwipeWatch() {
     const mySwipesFromDB = S.isHost ? (room.hostSwipes || {}) : (room.guestSwipes || {});
     const partnerSwipes  = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
     const total          = S.restaurants.length;
-    const myCountFromDB  = Object.keys(mySwipesFromDB).length;
+    const myCount        = Object.keys(mySwipesFromDB).length;
     const partnerCount   = Object.keys(partnerSwipes).length;
 
     const swipeCountEl = $('swipe-partner-count');
@@ -391,10 +395,8 @@ function startSwipeWatch() {
         : `${S.partnerName || 'Partner'} has swiped ${partnerCount}/${total}`;
     }
 
-    const meDone      = myCountFromDB >= total;
-    const partnerDone = partnerCount  >= total;
-
-    if (meDone && partnerDone) {
+    if (myCount >= total && partnerCount >= total) {
+      S.matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       S.mySwipes = mySwipesFromDB;
       resolveMatch(mySwipesFromDB, partnerSwipes);
@@ -403,6 +405,10 @@ function startSwipeWatch() {
 }
 
 async function resolveMatch(mySwipes, partnerSwipes) {
+  // Prevent double resolution if both players trigger this simultaneously
+  const room = await getRoom(S.roomCode);
+  if (room?.matchResult || room?.noMatch) return;
+
   const matches = S.restaurants.filter(r => mySwipes[r.id] === true && partnerSwipes[r.id] === true);
 
   if (!matches.length) {
