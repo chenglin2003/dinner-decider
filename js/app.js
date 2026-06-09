@@ -357,23 +357,30 @@ async function commitSwipe(liked) {
 // ── Swipe watch (real-time partner sync + match detection) ─────────────────
 function startSwipeWatch() {
   if (S.unsubscribe) S.unsubscribe();
+  let matchResolved = false;
+
   S.unsubscribe = subscribeRoom(S.roomCode, room => {
-    if (!room) return;
+    if (!room || matchResolved) return;
 
-    const partnerSwipes = S.isHost ? room.guestSwipes : room.hostSwipes;
-    const partnerCount  = Object.keys(partnerSwipes || {}).length;
-    $('swipe-partner-count').textContent = partnerCount;
+    const partnerSwipes = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
+    const partnerCount  = Object.keys(partnerSwipes).length;
+    const total = S.restaurants.length;
 
-    const meDone      = S.currentIdx >= S.restaurants.length;
-    const partnerDone = partnerCount  >= S.restaurants.length;
+    const swipeCountEl = $('swipe-partner-count');
+    if (swipeCountEl) swipeCountEl.textContent = partnerCount;
 
-    if ($('waiting-status-text')) {
-      $('waiting-status-text').textContent = partnerDone
+    const meDone      = S.currentIdx >= total;
+    const partnerDone = partnerCount >= total;
+
+    const statusEl = $('waiting-status-text');
+    if (statusEl) {
+      statusEl.textContent = partnerDone
         ? `${S.partnerName || 'Partner'} is done!`
-        : `${S.partnerName || 'Partner'} has swiped ${partnerCount}/${S.restaurants.length}`;
+        : `${S.partnerName || 'Partner'} has swiped ${partnerCount}/${total}`;
     }
 
     if (meDone && partnerDone) {
+      matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
       resolveMatch(partnerSwipes);
     }
@@ -381,12 +388,11 @@ function startSwipeWatch() {
 }
 
 function resolveMatch(partnerSwipes) {
-  const matches = S.restaurants.filter(r => S.mySwipes[r.id] && partnerSwipes[r.id]);
+  const matches = S.restaurants.filter(r => S.mySwipes[r.id] === true && partnerSwipes[r.id] === true);
   if (!matches.length) {
     showScreen('nomatch');
     return;
   }
-  // Pick highest-rated mutual like
   const pick = matches.sort((a, b) => (b.rating || 0) - (a.rating || 0))[0];
   showMatchScreen(pick);
 }
