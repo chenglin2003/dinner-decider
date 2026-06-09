@@ -362,26 +362,29 @@ function startSwipeWatch() {
   S.unsubscribe = subscribeRoom(S.roomCode, room => {
     if (!room || matchResolved) return;
 
-    const partnerSwipes = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
-    const partnerCount  = Object.keys(partnerSwipes).length;
-    const total = S.restaurants.length;
+    const mySwipesFromDB     = S.isHost ? (room.hostSwipes || {}) : (room.guestSwipes || {});
+    const partnerSwipes      = S.isHost ? (room.guestSwipes || {}) : (room.hostSwipes || {});
+    const total              = S.restaurants.length;
+    const myCountFromDB      = Object.keys(mySwipesFromDB).length;
+    const partnerCount       = Object.keys(partnerSwipes).length;
 
     const swipeCountEl = $('swipe-partner-count');
     if (swipeCountEl) swipeCountEl.textContent = partnerCount;
 
-    const meDone      = S.currentIdx >= total;
-    const partnerDone = partnerCount >= total;
-
     const statusEl = $('waiting-status-text');
     if (statusEl) {
-      statusEl.textContent = partnerDone
+      statusEl.textContent = partnerCount >= total
         ? `${S.partnerName || 'Partner'} is done!`
         : `${S.partnerName || 'Partner'} has swiped ${partnerCount}/${total}`;
     }
 
+    const meDone      = myCountFromDB >= total;
+    const partnerDone = partnerCount  >= total;
+
     if (meDone && partnerDone) {
       matchResolved = true;
       if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
+      S.mySwipes = mySwipesFromDB;
       resolveMatch(partnerSwipes);
     }
   });
