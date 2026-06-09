@@ -31,6 +31,7 @@ const S = {
 // ── Helpers ────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 function showScreen(id) {
+  if (S.matchResolved && id !== 'match' && id !== 'home') return;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(`screen-${id}`).classList.add('active');
 }
@@ -424,6 +425,8 @@ async function resolveMatch(mySwipes, partnerSwipes) {
 
 // ── Match screen ───────────────────────────────────────────────────────────
 function showMatchScreen(r) {
+  S.matchResolved = true;
+  if (S.unsubscribe) { S.unsubscribe(); S.unsubscribe = null; }
   $('match-name').textContent    = r.name;
   $('match-address').textContent = r.address;
 
