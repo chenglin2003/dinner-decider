@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nom Nom — Where should we eat?</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- SCREEN: HOME -->
+    <div id="screen-home" class="screen active">
+      <div class="home-hero">
+        <div class="logo-mark">🍜</div>
+        <h1 class="brand">Nom Nom</h1>
+        <p class="tagline">Swipe together.<br>Eat together.</p>
+      </div>
+      <div class="home-form">
+        <div class="input-group">
+          <label for="input-name">Your name</label>
+          <input type="text" id="input-name" placeholder="e.g. Cheng" autocomplete="off" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="btn-create">
+            <span class="btn-icon">✦</span> Create room
+          </button>
+          <button class="btn-secondary" id="btn-show-join">
+            Join room
+          </button>
+        </div>
+        <div id="join-panel" class="join-panel hidden">
+          <div class="input-group">
+            <label for="input-roomcode">Room code</label>
+            <input type="text" id="input-roomcode" placeholder="A3F7" maxlength="4" autocomplete="off" class="code-input" />
+          </div>
+          <button class="btn-primary" id="btn-join">Join →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: LOBBY -->
+    <div id="screen-lobby" class="screen">
+      <div class="lobby-top">
+        <button class="back-btn" id="lobby-back">←</button>
+        <h2>Room ready</h2>
+      </div>
+      <p class="lobby-sub">Share this code with your partner</p>
+      <div class="room-code-display" id="lobby-code">——</div>
+      <div class="status-pill" id="lobby-status-pill">
+        <span class="pulse-dot"></span>
+        <span id="lobby-status-text">Waiting for partner...</span>
+      </div>
+
+      <div class="filter-section">
+        <p class="filter-label">Filter by cuisine</p>
+        <div class="chip-row" id="cuisine-chips"></div>
+        <p class="filter-label" style="margin-top:1rem;">Search radius</p>
+        <div class="chip-row" id="radius-chips"></div>
+      </div>
+
+      <div class="lobby-actions">
+        <button class="btn-primary" id="btn-start-search" disabled>
+          <span id="start-btn-text">Waiting for partner...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN: LOADING -->
+    <div id="screen-loading" class="screen">
+      <div class="loading-center">
+        <div class="spinner"></div>
+        <p class="loading-text" id="loading-text">Finding restaurants near you...</p>
+        <p class="loading-sub">Getting your GPS location</p>
+      </div>
+    </div>
+
+    <!-- SCREEN: SWIPE -->
+    <div id="screen-swipe" class="screen">
+      <div class="swipe-header">
+        <div class="player-pill you">
+          <div class="avatar you" id="avatar-you">?</div>
+          <span id="swipe-you-name">You</span>
+          <span class="swipe-count" id="swipe-you-count">0</span>
+        </div>
+        <div class="vs-divider">vs</div>
+        <div class="player-pill partner">
+          <div class="avatar partner" id="avatar-partner">?</div>
+          <span id="swipe-partner-name">Partner</span>
+          <span class="swipe-count" id="swipe-partner-count">0</span>
+        </div>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <span class="progress-label" id="progress-label">1 / 8</span>
+      </div>
+
+      <div class="card-stack" id="card-stack"></div>
+
+      <div class="action-row">
+        <button class="action-btn nope" id="btn-nope" aria-label="Pass">
+          <span>✕</span>
+        </button>
+        <button class="action-btn like" id="btn-like" aria-label="Like">
+          <span>♥</span>
+        </button>
+      </div>
+      <p class="swipe-hint-text">Swipe right to like · left to pass</p>
+    </div>
+
+    <!-- SCREEN: WAITING -->
+    <div id="screen-waiting" class="screen">
+      <div class="waiting-center">
+        <div class="waiting-emoji">⏳</div>
+        <h2>You're done!</h2>
+        <p class="waiting-sub">Waiting for <span id="waiting-partner-name">your partner</span> to finish...</p>
+        <div class="status-pill" style="margin-top:1.5rem;">
+          <span class="pulse-dot"></span>
+          <span id="waiting-status-text">Checking...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: MATCH -->
+    <div id="screen-match" class="screen">
+      <div class="match-confetti" id="match-confetti"></div>
+      <div class="match-center">
+        <p class="match-eyebrow">It's a match 🎉</p>
+        <h1 class="match-restaurant-name" id="match-name">—</h1>
+        <div class="match-photo-wrap">
+          <img id="match-photo" src="" alt="" class="match-photo hidden" />
+          <div class="match-photo-placeholder" id="match-photo-placeholder">🍽️</div>
+        </div>
+        <div class="match-tags" id="match-tags"></div>
+        <p class="match-address" id="match-address"></p>
+        <div class="match-actions">
+          <button class="btn-primary" id="btn-directions">📍 Get directions</button>
+          <button class="btn-ghost" id="btn-reset">Start over</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: NO MATCH -->
+    <div id="screen-nomatch" class="screen">
+      <div class="waiting-center">
+        <div class="waiting-emoji">😅</div>
+        <h2>No match this round</h2>
+        <p class="waiting-sub">You didn't both like the same place.</p>
+        <button class="btn-primary" id="btn-retry" style="margin-top:2rem;">Try again</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase Realtime Database (free tier, no billing required) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { app as appModule } from "./js/app.js";
+
+    // Firebase config — replace with yours from Firebase console (free Spark plan)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDukGeQUt2YLmXluI8jXoM2kf1mZEgypQ8",
+      authDomain: "dinner-decider-69db8.firebaseapp.com",
+      databaseURL: "https://dinner-decider-69db8-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "dinner-decider-69db8",
+      storageBucket: "dinner-decider-69db8.firebasestorage.app",
+      messagingSenderId: "826283855976",
+      appId: "1:826283855976:web:50287f02d5986b6c51ebdd",
+      measurementId: "G-KR2ML3CVXX"
+  };
+
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
+
+    // Expose Firebase helpers to app
+    window._firebase = { db, ref, set, get, onValue, update };
+    appModule.init();
+  </script>
+</body>
+</html>
