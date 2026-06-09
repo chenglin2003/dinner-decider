@@ -35,14 +35,14 @@ function showScreen(id) {
 }
 function setLoadingText(main, sub = '') {
   $('loading-text').textContent = main;
-  $('loading-sub').textContent  = sub;
+  const subEl = $('loading-sub');
+  if (subEl) subEl.textContent = sub;
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 export const app = {
   init() {
     bindHome();
-    bindSettings();
     buildCuisineChips();
     buildRadiusChips();
   }
